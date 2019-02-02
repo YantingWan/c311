@@ -128,12 +128,12 @@
 ;11
 (define unique-free-vars
   (λ (e)
-    (filter (lambda (var) (var-occurs-free? e var)) (unique-vars e))))
+    (filter (lambda (var) (var-occurs-free? var e)) (unique-vars e))))
 
 ;12
 (define unique-bound-vars
   (λ (e)
-    (filter (lambda (var) (var-occurs-bound? e var)) (unique-vars e))))
+    (filter (lambda (var) (var-occurs-bound? var e)) (unique-vars e))))
 
 ;13
 (define lex
@@ -165,12 +165,31 @@
                         sym))])))
 
 ;just dessert
-;15
-(define var-occurs-both?
-  (λ (var e) 1))
+;15: a lazy way
+#|(define var-occurs-both?
+  (λ (var e)
+    (values (var-occurs-free? var e) (var-occurs-bound? var e))))|#
 
-(require "a2-student-tests.rkt")
-(test-file #:file-name "a2.rkt")
+;one pass solution
+(define var-occurs-both?
+  (λ (var e)
+    (match e
+      [`,y
+       #:when (symbol? y)
+       (values (eqv? var y) #f)]
+      [`(lambda (,x) ,body)
+       #:when (symbol? x)
+       (let-values (((free_in_body bound_in_body) (var-occurs-both? var body)))
+         (values (and (not (eqv? x var)) free_in_body) (or (and (eqv? x var) free_in_body) bound_in_body)))]
+      [`(,rator ,rand)
+       (let-values (((free_rator bound_rator) (var-occurs-both? var rator))
+                    ((free_rand bound_rand) (var-occurs-both? var rand)))
+                         (values (or free_rator free_rand) (or bound_rator bound_rand)))]
+      )))
+
+
+;(require "a2-student-tests.rkt")
+;(test-file #:file-name "a2.rkt")
     
 
 
