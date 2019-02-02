@@ -1,0 +1,6 @@
+#lang racket
+
+;1: countdown
+(define (countdown n)
+  (cond ((= n 0) null)
+        (else (cons n (countdown (sub1 n))))))

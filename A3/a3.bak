@@ -1,0 +1,133 @@
+#lang racket
+;part 1
+(define extend-env-ds
+  (λ (x a env)
+    `((,x . ,a) . ,env)))
+
+(define extend-env-fn
+  (λ (x a env)
+    (λ (y) (if (eqv? y x) a (apply-env-fn env y)))))
+
+(define apply-env-ds
+  (λ (env y)
+    (match env
+      ['() (error 'var "unbound ~v" y)]
+      [`((,x . ,a) . ,env)
+       (if (eqv? y x) a (apply-env-ds env y))])
+    ))
+
+(define apply-env-fn
+  (λ (env y)
+    (env y)))
+
+(define empty-env-ds
+  (λ ()
+    '()))
+   
+(define empty-env-fn
+  (λ ()
+    (λ (y) (error 'var "unbound ~v" y))))
+
+(define value-of-ds
+  (λ (e env)
+    (match e
+      [`,n
+       #:when (number? n)
+       n]
+      [`,b
+       #:when (boolean? b)
+       b]
+      [`,y
+       #:when (symbol? y)
+       (apply-env-ds env y)]
+      [`(lambda (,x) ,body)
+       #:when (symbol? x)
+       (λ (a) (value-of-ds body (extend-env-ds x a env)))]
+      [`(let ((,x ,e1)) ,body)
+       #:when (symbol? x)
+       (value-of-ds body (extend-env-ds x (value-of-ds e1 env) env))]
+      [`(+ ,e1 ,e2)
+       (+ (value-of-ds e1 env) (value-of-ds e2 env))]
+      [`(* ,e1 ,e2)
+       (* (value-of-ds e1 env) (value-of-ds e2 env))]
+      [`(if ,test ,then ,alt)
+       (if (value-of-ds test env)
+           (value-of-ds then env)
+           (value-of-ds alt env))]
+      [`(zero? ,e1)
+       (zero? (value-of-ds e1 env))]
+      [`(sub1 ,e1)
+       (sub1 (value-of-ds e1 env))]
+      [`(,rator ,rand)
+       ((value-of-ds rator env) (value-of-ds rand env))])))
+
+(define value-of-fn
+  (λ (e env)
+    (match e
+      [`,n
+       #:when (number? n)
+       n]
+      [`,b
+       #:when (boolean? b)
+       b]
+      [`,y
+       #:when (symbol? y)
+       (apply-env-fn env y)]
+      [`(lambda (,x) ,body)
+       #:when (symbol? x)
+       (λ (a) (value-of-fn body (extend-env-fn x a env)))]
+      [`(let ((,x ,e1)) ,body)
+       #:when (symbol? x)
+       (value-of-fn body (extend-env-fn x (value-of-fn e1 env) env))]
+      [`(+ ,e1 ,e2)
+       (+ (value-of-fn e1 env) (value-of-fn e2 env))]
+      [`(* ,e1 ,e2)
+       (* (value-of-fn e1 env) (value-of-fn e2 env))]
+      [`(if ,test ,then ,alt)
+       (if (value-of-fn test env)
+           (value-of-fn then env)
+           (value-of-fn alt env))]
+      [`(zero? ,e1)
+       (zero? (value-of-fn e1 env))]
+      [`(sub1 ,e1)
+       (sub1 (value-of-fn e1 env))]
+      [`(,rator ,rand)
+       ((value-of-fn rator env) (value-of-fn rand env))])))
+
+(define value-of
+  (λ (e env)
+    (if (list? env)
+        (value-of-ds e env)
+        (value-of-fn e env))))
+
+;part 2
+(define fo-eulav
+  (λ (e env)
+    (match e
+      [`,p
+       #:when (or (number? p) (boolean? p))
+       p]
+      [`,y
+       #:when (symbol? y)
+       (apply-env-fn env y)]
+      [`(,ydob (,x) adbmal)
+       #:when (symbol? x)
+       (λ (a) (fo-eulav ydob (extend-env-fn x a env)))]
+      [`(,e1 ,e2 +)
+       (+ (fo-eulav e2 env) (fo-eulav e1 env))]
+      [`(,e1 ,e2 *)
+       (* (fo-eulav e2 env) (fo-eulav e1 env))]
+      [`(,e1 1bus)
+       (sub1 (fo-eulav e1 env))]
+      [`(,alt ,then ,test fi)
+       (if (fo-eulav test env)
+           (fo-eulav then env)
+           (fo-eulav alt env))]
+      [`(,e1 ?orez)
+       (zero? (fo-eulav e1 env))]
+      [`(,rand ,rator)
+       ((fo-eulav rator env) (fo-eulav rand env))])))
+
+    
+                                      
+
