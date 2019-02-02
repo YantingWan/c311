@@ -154,6 +154,108 @@
                     (powerset (cdr ls))))
       )))
 
+;20
+(define cartesian-product
+  (λ (ls)
+    (cond
+        ((null? ls) '(()))
+        (else (append-map-fr (lambda (ele2) (map (lambda (ele1) (cons ele1 ele2)) (car ls)))
+                             (cartesian-product (cdr ls))))
+        )))
 
+;21
+;insertR-fr
+(define insertR-fr
+  (λ (s1 s2 ls)
+    (foldr (λ (first so-far) (if (eqv? first s1)
+                                 (cons first (cons s2 so-far))
+                                 (cons first so-far)))
+           null
+           ls)))
+;filter-fr
+(define filter-fr
+  (λ (pred? ls)
+    (foldr (λ (first so-far) (if (pred? first)
+                                 (cons first so-far)
+                                 so-far))
+           null
+           ls
+    )))
 
+;map-fr
+(define map-fr
+  (λ (proc ls)
+    (foldr (λ (first so-far) (cons (proc first) so-far)) null ls)))
+
+;append-fr
+(define append-fr
+  (λ (ls1 ls2)
+    (foldr (λ (first so-far) (cons first so-far)) ls2 ls1)))
+
+;reverse-fr
+(define reverse-fr
+  (λ (ls)
+    (foldr (λ (first so-far) (append-fr so-far (list first))) null ls)))
+
+;binary->natural-fr
+(define binary->natural-fr
+  (λ (ls)
+    (foldr (λ (first so-far) (+ first (* 2 so-far))) 0 ls)))
+
+;append-map-fr
+(define append-map-fr
+  (λ (proc ls)
+    (foldr (λ (first so-far) (append (proc first) so-far)) null ls)))
+
+;set-difference-fr
+(define set-difference-fr
+  (λ (ls1 ls2)
+    (foldr (λ (first so-far) (filter-fr (lambda (x) (not (eqv? x first))) so-far))
+           ls1
+           ls2)))
+
+;powerset-fr
+(define powerset-fr
+  (λ (ls)
+    (foldr (λ (first so-far) (append (map (lambda (x) (cons first x)) so-far) so-far))
+           '(())
+           ls)))
+
+;cartesian-product-fr
+(define cartesian-product-fr
+  (λ (lt)
+    (foldr (λ (first so-far)
+             (append-map-fr (lambda (ele2) (map (lambda (ele1) (cons ele1 ele2)) first)) so-far))
+           '(())
+           lt)))
+
+;22
+(define collatz
+  (letrec
+    ((odd-case
+       (lambda (recur)
+         (lambda (x)
+           (cond 
+            ((and (positive? x) (odd? x)) (collatz (add1 (* x 3)))) 
+            (else (recur x))))))
+     (even-case
+       (lambda (recur)
+         (lambda (x)
+           (cond 
+            ((and (positive? x) (even? x)) (collatz (/ x 2))) 
+            (else (recur x))))))
+     (one-case
+       (lambda (recur)
+         (lambda (x)
+           (cond
+            ((zero? (sub1 x)) 1)
+            (else (recur x))))))
+     (base
+       (lambda (x)
+         (error 'error "Invalid value ~s~n" x))))
+    (one-case (odd-case (even-case base)));; this should be a single line, without lambda
+    ))
+
+;Just Dessert
+;(define quine ((lambda (x) (list x x)) '(lambda (x) (list x x))))
 
