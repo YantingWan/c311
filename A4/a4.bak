@@ -1,0 +1,14 @@
+#lang racket
+(define lex
+  (λ (e acc)
+    (match e
+      [`,n
+       #:when (number? n)
+       `(const ,n)]
+      [`,y
+       #:when (symbol? y)
+       `(var ,(index-of acc y))]
+      [`(lambda (,x) ,body)
+       #:when (symbol? x)
+       `(lambda ,(lex body (cons x acc)))]
+       [`(,rator ,rand) `(,(lex rator acc) ,(lex rand acc))])))
