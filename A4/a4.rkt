@@ -175,6 +175,154 @@
            (value-of-dynamic body (extend-env x (box (value-of-dynamic rand env)) env))])]
        )))
 
+(check-equal? (value-of-dynamic '(let ([x 2])
+                       (let ([f (lambda (e) x)])
+                         (let ([x 5])
+                           (f 0))))
+                    (empty-env))
+              5)
+
+(check-equal? (value-of-dynamic
+    '(let ([! (lambda (n)
+                (if (zero? n) 
+                    1
+                    (* n (! (sub1 n)))))])
+       (! 5))
+    (empty-env))
+              120)
+
+(check-equal? (value-of-dynamic
+    '((lambda (!) (! 5))
+        (lambda (n)
+          (if (zero? n) 
+              1
+              (* n (! (sub1 n))))))
+    (empty-env))
+              120)
+
+(check-equal? (value-of-dynamic
+    '(let ([f (lambda (x) (cons x l))])
+       (let ([cmap 
+	      (lambda (f)
+		(lambda (l)               
+		  (if (null? l) 
+		      '()
+		      (cons (f (car l)) ((cmap f) (cdr l))))))])
+	 ((cmap f) (cons 1 (cons 2 (cons 3 '())))))) 
+    (empty-env))
+              '((1 1 2 3) (2 2 3) (3 3)))
+
+;Brainteasers
+;4
+(define (value-of-ri init-env ext-env apply-env closure apply-closure)
+ (letrec ((value-of
+            (lambda (env)
+              (lambda (exp)
+                (match exp
+                  [`,p
+                   #:when (or (number? p) (boolean? p))
+                   p]
+                  [`,y
+                   #:when (symbol? y)
+                   (apply-env env y)]
+                  [`(lambda (,x) ,body)
+                   #:when (symbol? x)
+                   (closure x body env value-of)]
+                  [`(let ((,x ,e)) ,body)
+                   ((value-of env)
+                    `((lambda (,x) ,body) ,e))]
+                  [`(if ,test ,conseq ,alt)
+                   (if ((value-of env) test)
+                       ((value-of env) conseq)
+                       ((value-of env) alt))]
+                  [`(zero? ,e)
+                   (zero? ((value-of env) e))]
+                  [`(sub1 ,e1)
+                   (sub1 ((value-of env) e1))]
+                  [`(+ ,e1 ,e2)
+                   (+ ((value-of env) e1) ((value-of env) e2))]
+                  [`(* ,e1 ,e2)
+                   (* ((value-of env) e1) ((value-of env) e2))]
+                  [`(,rator ,rand)
+                   (apply-closure
+                    ((value-of env) rator)
+                    ((value-of env) rand)
+                    ext-env)])))))
+   (value-of (init-env))))
+
+(define closure-fn-ri
+  (lambda (x body env f)
+    (lambda (ext-env)
+      (lambda (a) ((f (ext-env x a env)) body)))))
+
+(define closure-ds-ri closure-fn-ri)
+
+(define apply-closure-fn-ri
+  (lambda (clos x ext)
+    ((clos ext) x)))
+
+(define apply-closure-ds-ri
+  apply-closure-fn-ri)
+
+(define empty-env-fn
+  (lambda ()
+    (lambda (y) (error 'var "unbound ~v" y))))
+
+(define empty-env-ds
+  (lambda ()
+    '()))
+
+(define extend-env-fn
+  (lambda (x a env)
+    (lambda (y) (if (eqv? y x) a (apply-env-fn env y)))))
+
+(define extend-env-ds
+  (lambda (x a env)
+    (cons `(,x . ,a) env)))
+
+(define apply-env-fn
+  (lambda (env y)
+    (env y)))
+
+(define apply-env-ds
+  (lambda (env y)
+    (match env
+      ['() (error 'var "unbound ~v" y)]
+      [`((,x . ,a) . ,env)
+       (if (eqv? y x) a (apply-env-ds env y))])))
+    
+
+(define interpreter-fn (value-of-ri empty-env-fn extend-env-fn apply-env-fn closure-fn-ri apply-closure-fn-ri))
+(define interpreter-ds (value-of-ri empty-env-ds extend-env-ds apply-env-ds closure-ds-ri apply-closure-ds-ri))
+
+(check-equal? (interpreter-fn '((lambda (x) x) 5)) 5)
+(check-equal? (interpreter-ds '((lambda (x) x) 5)) 5)
+
+(check-equal? (interpreter-fn  '((lambda (x) (if (zero? x) 
+                      12 
+                      47)) 
+       0)) 12)
+
+(check-equal? (interpreter-ds  '((lambda (x) (if (zero? x) 
+                      12 
+                      47)) 
+       0)) 12)
+
+(check-equal? (interpreter-fn  '(let ([x (* 2 3)])
+      (let ([x (sub1 x)])
+        (* x x)))) 25)
+
+(check-equal? (interpreter-ds  '(let ([x (* 2 3)])
+      (let ([x (sub1 x)])
+        (* x x)))) 25)
+
+         
+                   
+              
+
+
+
+
       
 
 
