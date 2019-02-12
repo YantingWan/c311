@@ -1,0 +1,18 @@
+#lang racket
+(define value-of
+  (lambda (exp env)
+    (match exp
+      [`,b #:when (boolean? b) b]
+      [`,n #:when (number? n)  n]
+      [`(zero? ,n) (zero? (value-of n env))]
+      [`(sub1 ,n) (sub1 (value-of n env))]
+      [`(* ,n1 ,n2) (* (value-of n1 env) (value-of n2 env))]
+      [`(if ,test ,conseq ,alt) (if (value-of test env)
+                                  (value-of conseq env)
+                                  (value-of alt env))]
+      [`(begin2 ,e1 ,e2) (begin (value-of e1 env) (value-of e2 env))]
+      [`(random ,n) (random (value-of n env))]
+      [`,y #:when (symbol? y) (apply-env env y)]
+      [`(lambda (,x) ,body) (make-closure x body env)]
+      [`(,rator ,rand) (apply-closure (value-of rator env)
+                                      (value-of rand env))])))
